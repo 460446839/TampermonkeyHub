@@ -9,7 +9,7 @@
 // @match        https://www.vmall.com/product/*.html
 // @match        https://*.cloud.huawei.com/*
 // @match        https://www.vmall.com/product/*.html?*
-// @match        https://www.vmall.com/order/confirmDepositNew11
+// @match        https://www.vmall.com/order/confirmDepositNew
 // @match        https://sale.vmall.com/rush/*
 // @supportURL   https://github.com/gorkys/TampermonkeyHub/issues
 // @updateURL    https://github.com/gorkys/TampermonkeyHub/vmall-rushToBuy.user.js
@@ -52,11 +52,11 @@
             const html = `
                     <div id='rushToBuyBox'>
                         <h3 class="title">
-                            Mate40Pro+ 必中 <span>by: Samuel</span>
+                            Mate40Pro+ 必中 <span>(by: Samuel)</span>
                         </h3>
                         <div class='time'>
-                            <p>ServerTime-LocalTIme: <span id='offsetTime'>-1400ms</span></p>
-                            <p>1/2网络延迟: <span id='timer'>200ms</span></p>
+                            <p>ServerTime-LocalTIme<span>(ms)</span>: <span id='offsetTime'>-1400ms</span></p>
+                            <p>1/2网络延迟<span>(ms)</span>: <span id='timer'>200ms</span></p>
                         </div>
                         <form id='formList'>
                             <div>活动开始时间</div>
@@ -150,14 +150,15 @@
                     let currentTime = res.currentTime
 
                     cycle = setInterval(() => {
+                        console.log(startTime-currentTime, g_beforeStartTime)
                         // 抢购方式一，提前直接排队
                         //rushToBuy(startTime, currentTime, g_beforeStartTime)
 
                         // 抢购方式二，提前调用onclick
-                        rushToBuyEx(startTime, currentTime, g_beforeStartTime)
+                        //rushToBuyEx(startTime, currentTime, g_beforeStartTime)
 
                         // 抢购方式三，准时调用click
-                        //rushToBuyDingjin()
+                        rushToBuyDingjin()
 
                         // 调整定时器
                         currentTime += INTERVAL
@@ -177,7 +178,12 @@
                     if (responseDetails.status === 200) {
                         const res = JSON.parse(responseDetails.responseText)
                         OFFSETTIME = res.currentTime - new Date().getTime()
-                        STARTTIME = res.skuRushBuyInfoList[0].startTime
+                        if (res.skuRushBuyInfoList[0].isRushBuySku) {
+                            STARTTIME = res.skuRushBuyInfoList[0].startTime
+                        } else {
+                            STARTTIME = getTime
+                        }
+
                         initBox()
                     }
                 }
