@@ -187,7 +187,7 @@
             }
             GM_xmlhttpRequest(details)
         }
-    // 提前申购
+    // 提前申购1
     const rushToBuy = (startTime, currentTime, g_beforeStartTime) => {
             if (startTime - currentTime <= g_beforeStartTime) {
                 if (window.location.href.indexOf('/rush') !== -1) {
@@ -195,6 +195,20 @@
                 }
                 if (window.location.href.indexOf('/product') !== -1) {
                     rush.business.doGoRush(1);
+                }
+                sessionStorage.setItem('isRun', false)
+                clearInterval(cycle)
+            }
+        }
+
+    // 提前申购2
+    const rushToBuyEx = (startTime, currentTime, g_beforeStartTime) => {
+            if (startTime - currentTime <= g_beforeStartTime) {
+                if (window.location.href.indexOf('/rush') !== -1) {
+                    ec.submit(0)
+                }
+                if (window.location.href.indexOf('/product') !== -1) {
+                    ec.product.payDepositNew(1)
                 }
                 sessionStorage.setItem('isRun', false)
                 clearInterval(cycle)
