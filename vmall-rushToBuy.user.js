@@ -9,7 +9,7 @@
 // @match        https://www.vmall.com/product/*.html
 // @match        https://*.cloud.huawei.com/*
 // @match        https://www.vmall.com/product/*.html?*
-// @match        https://www.vmall.com/order/confirmDepositNew
+// @match        https://www.vmall.com/order/confirmDepositNew11
 // @match        https://sale.vmall.com/rush/*
 // @supportURL   https://github.com/gorkys/TampermonkeyHub/issues
 // @updateURL    https://github.com/gorkys/TampermonkeyHub/vmall-rushToBuy.user.js
@@ -23,6 +23,7 @@
     let STARTTIME = 0 // 活动开始时间
     let OFFSETTIME = 0 // 与本地时间相差
     let NETWORKTIME = 0 // 网络延迟
+    const INTERVAL = 3 // 定时器时长ms
 
     window.onload = () => {
         // 抢购前，务必登录vmall.com，并且设置好默认邮寄地址
@@ -55,11 +56,11 @@
                         </h3>
                         <div class='time'>
                             <p>ServerTime-LocalTIme: <span id='offsetTime'>-1400ms</span></p>
-                            <p>网络延迟: <span id='timer'>200ms</span></p>
+                            <p>1/2网络延迟: <span id='timer'>200ms</span></p>
                         </div>
                         <form id='formList'>
                             <div>活动开始时间</div>
-                            <input type="text" id="g_startTime"  value="" placeholder="2020/03/07 12:49:00" />
+                            <input type="text" id="g_startTime"  value="" placeholder="2020-03-07 12:49:00" />
                             <div>提前下单时间，和RTT成正比<span>(ms)</span></div>
                             <input type="number" id="g_beforeStartTime" value="" placeholder="200" /></br>
                             <div style="display:none">提前刷新页面<span>(s)</span></div>
@@ -120,7 +121,7 @@
                 sessionStorage.setItem('g_beforeStartTime', g_beforeStartTime.value)
                 sessionStorage.setItem('isRun', true)
 
-                getServerTime(g_startTime.value, g_beforeStartTime.value)
+                getServerTime(g_startTime.value, parseInt(g_beforeStartTime.value))
             })
             stop.addEventListener('click', () => {
                 countdown.disabled = false
@@ -137,39 +138,35 @@
         }
         // 获取服务器时间
     const getServerTime = (g_startTime, g_beforeStartTime) => {
-            const details = {
-                method: 'GET',
-                url: 'https://buy.vmall.com/getSkuRushbuyInfo.json',
-                onload: (responseDetails) => {
-                    if (responseDetails.status === 200) {
-                        const res = JSON.parse(responseDetails.responseText)
-                        const startTime = new Date(g_startTime).getTime()
-                        const isRefresh = document.querySelector('#isRefresh')
-                        const refreshTime = document.querySelector('#refreshTime')
+        const details = {
+            method: 'GET',
+            url: `https://buy.vmall.com/getSkuRushbuyInfo.json`,
+            onload: (responseDetails) => {
+                if (responseDetails.status === 200) {
+                    const res = JSON.parse(responseDetails.responseText)
+                    const startTime = new Date(g_startTime).getTime()
+                    const isRefresh = document.querySelector('#isRefresh')
+                    const refreshTime = document.querySelector('#refreshTime')
+                    let currentTime = res.currentTime
 
-                        let currentTime = res.currentTime
+                    cycle = setInterval(() => {
+                        // 抢购方式一，提前直接排队
+                        //rushToBuy(startTime, currentTime, g_beforeStartTime)
 
-                        //OFFSETTIME = new Date().getTime() - res.currentTime
-                        //console.log(OFFSETTIME);
+                        // 抢购方式二，提前调用onclick
+                        rushToBuyEx(startTime, currentTime, g_beforeStartTime)
 
-                        cycle = setInterval(() => {
-                            //console.log(startTime - currentTime)
-                            // 不需要reload页面
-                            if (isRefresh.checked && startTime - currentTime <= refreshTime.value * 1000) {
-                                sessionStorage.setItem('isRefresh', !isRefresh.checked)
-                                window.location.reload()
-                                clearInterval(cycle)
-                            }
+                        // 抢购方式三，准时调用click
+                        //rushToBuyDingjin()
 
-                            //rushToBuy(startTime, currentTime, g_beforeStartTime)
-                            rushToBuyDingjin()
-                            currentTime += 3
-                        }, 3)
-                    }
+                        // 调整定时器
+                        currentTime += INTERVAL
+                    }, INTERVAL)
                 }
             }
-            GM_xmlhttpRequest(details)
         }
+        GM_xmlhttpRequest(details)
+    }
         // 获取活动信息
     const getSkuRushbuyInfo = (skuIds, getTime) => {
             const details = {
@@ -188,32 +185,32 @@
             GM_xmlhttpRequest(details)
         }
     // 提前申购1
-    const rushToBuy = (startTime, currentTime, g_beforeStartTime) => {
-            if (startTime - currentTime <= g_beforeStartTime) {
-                if (window.location.href.indexOf('/rush') !== -1) {
-                    ec.submit(0)
-                }
-                if (window.location.href.indexOf('/product') !== -1) {
-                    rush.business.doGoRush(1);
-                }
-                sessionStorage.setItem('isRun', false)
-                clearInterval(cycle)
+    const rushToBuy = (startTime, currentTime, beforeStartTime) => {
+        if (startTime - currentTime <= beforeStartTime) {
+            if (window.location.href.indexOf('/rush') !== -1) {
+                ec.submit(0)
             }
+            if (window.location.href.indexOf('/product') !== -1) {
+                rush.business.doGoRush(1);
+            }
+            sessionStorage.setItem('isRun', false)
+            clearInterval(cycle)
         }
+    }
 
     // 提前申购2
-    const rushToBuyEx = (startTime, currentTime, g_beforeStartTime) => {
-            if (startTime - currentTime <= g_beforeStartTime) {
-                if (window.location.href.indexOf('/rush') !== -1) {
-                    ec.submit(0)
-                }
-                if (window.location.href.indexOf('/product') !== -1) {
-                    ec.product.payDepositNew(1)
-                }
-                sessionStorage.setItem('isRun', false)
-                clearInterval(cycle)
+    const rushToBuyEx = (startTime, currentTime, beforeStartTime) => {
+        if (startTime - currentTime <= beforeStartTime) {
+            if (window.location.href.indexOf('/rush') !== -1) {
+                ec.submit(0)
             }
+            if (window.location.href.indexOf('/product') !== -1) {
+                ec.product.payDepositNew(1)
+            }
+            sessionStorage.setItem('isRun', false)
+            clearInterval(cycle)
         }
+    }
 
     // 准时下单
     const rushToBuyDingjin = () => {
@@ -223,8 +220,8 @@
                 sessionStorage.setItem('isRun', false)
                 clearInterval(cycle)
             }
-        }
-        // 抢购倒计时对比
+    }
+    // 抢购倒计时对比
     const getDistanceSpecifiedTime = (dateTime, currentTime) => {
             // 指定日期和时间
             var EndTime = new Date(dateTime).getTime();
@@ -237,8 +234,8 @@
             var m = Math.floor(t / 1000 / 60 % 60);
             var s = Math.floor(t / 1000 % 60);
             return `${fillZero(d)}天 ${fillZero(h)}:${fillZero(m)}:${fillZero(s)}`
-        }
-        // 格式化时间
+    }
+    // 格式化时间
     const formatTime = (time) => {
             var datetime = new Date();
             datetime.setTime(time);
@@ -250,9 +247,8 @@
             var second = datetime.getSeconds()
             return `${year}-${fillZero(month)}-${fillZero(date)} ${fillZero(hour)}:${fillZero(minute)}:${fillZero(second)}`
         }
-        // 补零
+    // 格式化时补零
     const fillZero = (str, len = 2) => {
         return (`${str}`).padStart(len, '0')
-            // return (`${str}`).slice(-len)
     }
 })();
