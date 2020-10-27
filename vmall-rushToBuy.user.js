@@ -3,13 +3,13 @@
 // @namespace    https://github.com/gorkys/TampermonkeyHub
 // @version      1.2.0
 // @description  同步华为商城服务器时间，毫秒级华为商城抢购助手
-// @author       Gorkys
+// @author       Samuel
 // @license      MIT
 
 // @match        https://www.vmall.com/product/*.html
 // @match        https://*.cloud.huawei.com/*
 // @match        https://www.vmall.com/product/*.html?*
-// @match        https://www.vmall.com/order/nowConfirmcart
+// @match        https://www.vmall.com/order/confirmDepositNew
 // @match        https://sale.vmall.com/rush/*
 // @supportURL   https://github.com/gorkys/TampermonkeyHub/issues
 // @updateURL    https://github.com/gorkys/TampermonkeyHub/vmall-rushToBuy.user.js
@@ -25,32 +25,12 @@
     let NETWORKTIME = 0 // 网络延迟
 
     window.onload = () => {
-        // 自动登录
-        if (window.location.href.indexOf('cloud.huawei') !== -1) {
-            // 浏览器记住密码的情况下
-            setTimeout(() => {
-                $('body').click()
-            }, 1000)
-            setTimeout(() => {
-                $('.button-base-box').click()
-            }, 2000)
-        }
+        // 抢购前，务必登录vmall.com，并且设置好默认邮寄地址
         // 提交订单
-        if (window.location.href.indexOf('order') !== -1) {
+        if (window.location.href.indexOf('/order') !== -1) {
             ec.order.confirmSubmit()
         }
 
-        // 检查登录情况
-        // 318 秒杀活动
-        if (window.location.href.indexOf('/rush') !== -1) {
-            if (ec.account.isLogin()) {
-                const skuIds = ec.skuList.map((item) => { return item.skuInfo[0].id }).join(',')
-                const getTime = new Date().getTime()
-                getSkuRushbuyInfo(skuIds, getTime)
-            } else {
-                window.location.replace(ec.loginUrl)
-            }
-        }
         // 商城申购
         if (window.location.href.indexOf('/product') !== -1) {
             if (rush.account.isLogin()) {
@@ -58,34 +38,33 @@
                 const getTime = new Date().getTime()
                 getSkuRushbuyInfo(skuIds, getTime)
             } else {
-                // ec.account.afterLogin()  弹窗登录
                 rush.business.doGoLogin() //页面登录
             }
         }
-
     }
 
     let cycle = 0
 
     const initBox = () => {
-            const style = `#rushToBuyBox{z-index: 9999;background-color:rgba(255,255,255,0.7);width:260px;font-size:14px;position:fixed;top:20%;right:-150px;padding:10px;border-radius:5px;box-shadow:1px 1px 9px 0 #888;transition:right 1s;text-align:center}#rushToBuyBox:hover{right:10px}.title{font-size:16px;font-weight:bold;margin:10px 0}.title span{font-size:12px;color:#9c9c9c}#formList{margin:10px}.time span{color:red}#formList input{background:0;height:20px;font-size:14px;outline:0;border:1px solid #ccc;margin-bottom:10px}#formList input:focus{border:1px solid #4ebd0d}#formList div span{font-size:12px;color:red}#formList div{margin-bottom:10px}.countdown{margin-top:10px}`
+            // 构建抢购助手页面
+            const style = `#rushToBuyBox{z-index: 9999;background-color:rgba(255,255,255,0.7);width:260px;font-size:14px;position:fixed;top:20%;right:0px;padding:0px;border-radius:5px;box-shadow:1px 1px 9px 0 #888;transition:right 1s;text-align:center}#rushToBuyBox:hover{right:10px}.title{font-size:16px;font-weight:bold;margin:10px 0}.title span{font-size:12px;color:#9c9c9c}#formList{margin:10px}.time span{color:red}#formList input{background:0;height:20px;font-size:14px;outline:0;border:1px solid #ccc;margin-bottom:10px}#formList input:focus{border:1px solid #4ebd0d}#formList div span{font-size:12px;color:red}#formList div{margin-bottom:10px}.countdown{margin-top:10px}`
             const html = `
                     <div id='rushToBuyBox'>
                         <h3 class="title">
-                            华为商城抢购助手 <span>by: Gorkys</span>
+                            Mate40Pro+ 必中 <span>by: Samuel</span>
                         </h3>
                         <div class='time'>
-                            <p>本地与服务器时间相差: <span id='offsetTime'>-1400ms</span></p>
+                            <p>ServerTime-LocalTIme: <span id='offsetTime'>-1400ms</span></p>
                             <p>网络延迟: <span id='timer'>200ms</span></p>
                         </div>
                         <form id='formList'>
                             <div>活动开始时间</div>
                             <input type="text" id="g_startTime"  value="" placeholder="2020/03/07 12:49:00" />
-                            <div>提前下单时间<span>(ms)</span></div>
+                            <div>提前下单时间，和RTT成正比<span>(ms)</span></div>
                             <input type="number" id="g_beforeStartTime" value="" placeholder="200" /></br>
-                            <div>提前刷新页面<span>(s)</span></div>
-                            <input type="checkBox" id='isRefresh'> 开启</input>
-                            <input style="margin-left:10px;width: 100px;" disabled id='refreshTime' type="number" /> 秒</br>
+                            <div style="display:none">提前刷新页面<span>(s)</span></div>
+                            <input style="display:none" type="checkBox" id='isRefresh'> </input>
+                            <input style="display:none" style="margin-left:10px;width: 100px;" disabled id='refreshTime' type="number" /> </br>
                             <button id='rushToBuy'>开始运行</button><button style='margin-left:5px' id='stop'>停止</button>
                         </form>
                         <div class='countdown'>倒计时: <span id='g_countdown'>1天 2:3:4</span></div>
@@ -108,19 +87,23 @@
             const g_beforeStartTime = document.querySelector('#g_beforeStartTime')
             const isRefresh = document.querySelector('#isRefresh')
             const refreshTime = document.querySelector('#refreshTime')
-                // 设置活动开始时间
+
+            // 设置活动开始时间
             g_startTime.value = formatTime(STARTTIME) || rush.activity.getActivity(rush.sbom.getCurrSkuId()).startTime
-            g_beforeStartTime.value = 200
+            g_beforeStartTime.value = 20
             refreshTime.value = 30
-                // 延时
+
+            // 延时
             document.querySelector('#offsetTime').innerText = OFFSETTIME || rush.business.offsetTime + 'ms'
             document.querySelector('#timer').innerText = NETWORKTIME || rush.business.timer + 'ms'
+            //document.querySelector('#offsetTime').innerText = rush.business.offsetTime + 'ms'
+            //document.querySelector('#timer').innerText = rush.business.timer + 'ms'
 
 
             // 倒计时
             const countdownId = setInterval(() => {
                 document.querySelector('#g_countdown').innerText = getDistanceSpecifiedTime(g_startTime.value, new Date().getTime() + OFFSETTIME)
-            }, 1000)
+            }, 100)
 
             const countdown = document.querySelector('#rushToBuy')
             const stop = document.querySelector('#stop')
@@ -165,19 +148,23 @@
                         const refreshTime = document.querySelector('#refreshTime')
 
                         let currentTime = res.currentTime
-                        OFFSETTIME = new Date().getTime() - res.currentTime
+
+                        //OFFSETTIME = new Date().getTime() - res.currentTime
+                        //console.log(OFFSETTIME);
 
                         cycle = setInterval(() => {
-                            console.log(startTime - currentTime)
+                            //console.log(startTime - currentTime)
+                            // 不需要reload页面
                             if (isRefresh.checked && startTime - currentTime <= refreshTime.value * 1000) {
                                 sessionStorage.setItem('isRefresh', !isRefresh.checked)
                                 window.location.reload()
                                 clearInterval(cycle)
                             }
 
-                            rushToBuy(startTime, currentTime, g_beforeStartTime)
-                            currentTime += 10
-                        }, 10)
+                            //rushToBuy(startTime, currentTime, g_beforeStartTime)
+                            rushToBuyDingjin()
+                            currentTime += 3
+                        }, 3)
                     }
                 }
             }
@@ -189,9 +176,9 @@
                 method: 'GET',
                 url: `https://buy.vmall.com/getSkuRushbuyInfo.json?skuIds=${skuIds}&t=${new Date().getTime()}`,
                 onload: (responseDetails) => {
+                    NETWORKTIME = (new Date().getTime() - getTime)/2 // 单边RTT
                     if (responseDetails.status === 200) {
                         const res = JSON.parse(responseDetails.responseText)
-                        NETWORKTIME = new Date().getTime() - getTime
                         OFFSETTIME = res.currentTime - new Date().getTime()
                         STARTTIME = res.skuRushBuyInfoList[0].startTime
                         initBox()
@@ -200,7 +187,7 @@
             }
             GM_xmlhttpRequest(details)
         }
-        // 提前申购
+    // 提前申购
     const rushToBuy = (startTime, currentTime, g_beforeStartTime) => {
             if (startTime - currentTime <= g_beforeStartTime) {
                 if (window.location.href.indexOf('/rush') !== -1) {
@@ -209,6 +196,16 @@
                 if (window.location.href.indexOf('/product') !== -1) {
                     rush.business.doGoRush(1);
                 }
+                sessionStorage.setItem('isRun', false)
+                clearInterval(cycle)
+            }
+        }
+
+    // 准时下单
+    const rushToBuyDingjin = () => {
+            var button = document.getElementsByClassName("product-button02")[2];
+            if ((button.text == '支付订金') && button.hasAttribute("onclick")) {
+                button.click();
                 sessionStorage.setItem('isRun', false)
                 clearInterval(cycle)
             }
