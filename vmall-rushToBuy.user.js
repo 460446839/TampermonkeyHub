@@ -91,15 +91,12 @@
 
             // 设置活动开始时间
             g_startTime.value = formatTime(STARTTIME) || rush.activity.getActivity(rush.sbom.getCurrSkuId()).startTime
-            g_beforeStartTime.value = 20
+            g_beforeStartTime.value = 100
             refreshTime.value = 30
 
             // 延时
             document.querySelector('#offsetTime').innerText = OFFSETTIME || rush.business.offsetTime + 'ms'
             document.querySelector('#timer').innerText = NETWORKTIME || rush.business.timer + 'ms'
-            //document.querySelector('#offsetTime').innerText = rush.business.offsetTime + 'ms'
-            //document.querySelector('#timer').innerText = rush.business.timer + 'ms'
-
 
             // 倒计时
             const countdownId = setInterval(() => {
@@ -138,35 +135,20 @@
         }
         // 获取服务器时间
     const getServerTime = (g_startTime, g_beforeStartTime) => {
-        const details = {
-            method: 'GET',
-            url: `https://buy.vmall.com/getSkuRushbuyInfo.json`,
-            onload: (responseDetails) => {
-                if (responseDetails.status === 200) {
-                    const res = JSON.parse(responseDetails.responseText)
-                    const startTime = new Date(g_startTime).getTime()
-                    const isRefresh = document.querySelector('#isRefresh')
-                    const refreshTime = document.querySelector('#refreshTime')
-                    let currentTime = res.currentTime
+        const startTime = new Date(g_startTime).getTime()
+        cycle = setInterval(() => {
+            let currentTime = new Date().getTime() + OFFSETTIME;
+            //console.log(startTime-currentTime, g_beforeStartTime)
+            // 抢购方式一，提前直接排队
+            //rushToBuy(startTime, currentTime, g_beforeStartTime)
 
-                    cycle = setInterval(() => {
-                        console.log(startTime-currentTime, g_beforeStartTime)
-                        // 抢购方式一，提前直接排队
-                        //rushToBuy(startTime, currentTime, g_beforeStartTime)
+            // 抢购方式二，提前调用onclick
+            rushToBuyEx(startTime, currentTime, g_beforeStartTime)
 
-                        // 抢购方式二，提前调用onclick
-                        //rushToBuyEx(startTime, currentTime, g_beforeStartTime)
+            // 抢购方式三，准时调用click
+            //rushToBuyDingjin()
 
-                        // 抢购方式三，准时调用click
-                        rushToBuyDingjin()
-
-                        // 调整定时器
-                        currentTime += INTERVAL
-                    }, INTERVAL)
-                }
-            }
-        }
-        GM_xmlhttpRequest(details)
+        }, INTERVAL)
     }
         // 获取活动信息
     const getSkuRushbuyInfo = (skuIds, getTime) => {
@@ -180,6 +162,7 @@
                         OFFSETTIME = res.currentTime - new Date().getTime()
                         if (res.skuRushBuyInfoList[0].isRushBuySku) {
                             STARTTIME = res.skuRushBuyInfoList[0].startTime
+                            //STARTTIME = getTime+15000;// for test
                         } else {
                             STARTTIME = getTime
                         }
