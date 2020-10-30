@@ -1,5 +1,5 @@
 // ==UserScript==
-// @name         华为商城抢购助手
+// @name         华为商城抢购极速版2.1
 // @namespace    https://github.com/gorkys/TampermonkeyHub
 // @version      2.1.0
 // @description  同步华为商城服务器时间，毫秒级华为商城抢购助手
@@ -23,7 +23,7 @@
     let STARTTIME = 0 // 活动开始时间
     let OFFSETTIME = 0 // 与本地时间相差
     let NETWORKTIME = 0 // 网络延迟
-    const INTERVAL = 3 // 定时器时长ms
+    const INTERVAL = 3 // 检查按钮的定时器时长ms
 
     window.onload = () => {
         // 抢购前，务必登录vmall.com，并且设置好默认邮寄地址
@@ -118,8 +118,8 @@
                 sessionStorage.setItem('g_beforeStartTime', g_beforeStartTime.value)
                 sessionStorage.setItem('isRun', true)
 
-                //getServerTime(g_startTime.value, parseInt(g_beforeStartTime.value))
-                getServerTimeEx(g_startTime.value)
+                getServerTime(g_startTime.value, parseInt(g_beforeStartTime.value))
+                //getServerTimeEx(g_startTime.value)
             })
             stop.addEventListener('click', () => {
                 countdown.disabled = false
@@ -166,10 +166,7 @@
             now: nowDate,
             endTime: startTime,
             callback: function (json) {
-                $("#pro-operation").html('\x3ca href\x3d"javascript:;" class\x3d"product-button02" onclick\x3d"ec.product.payDepositNew(1);"\x3e\u652f\u4ed8\u8ba2\u91d1\x3c/a\x3e');
-                $("#product-recommend-all .product-recommend-operation .product-button02").replaceWith('\x3ca href\x3d"javascript:;" class\x3d"product-button02" onclick\x3d"ec.product.payDepositNew(3);"\x3e\u652f\u4ed8\u8ba2\u91d1\x3c/a\x3e');
-                ec.product.gift.updateOperationBtns();
-                ec.product.payDepositNew(1);
+                rush.business.clickBtn(1);
                 if (rush.business.timer) {
                     clearInterval(rush.business.timer);
                     rush.business.timer = null
@@ -231,7 +228,7 @@
     // 准时下单
     const rushToBuyDingjin = () => {
             var button = document.getElementsByClassName("product-button02")[2];
-            if ((button.text == '支付订金') && button.hasAttribute("onclick")) {
+            if ((button.text == '立即申购') && button.hasAttribute("onclick")) {
                 button.click();
                 sessionStorage.setItem('isRun', false)
                 clearInterval(cycle)
