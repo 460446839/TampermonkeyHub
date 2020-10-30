@@ -118,8 +118,8 @@
                 sessionStorage.setItem('g_beforeStartTime', g_beforeStartTime.value)
                 sessionStorage.setItem('isRun', true)
 
-                getServerTime(g_startTime.value, parseInt(g_beforeStartTime.value))
-                //getServerTimeEx(g_startTime.value)
+                //getServerTime(g_startTime.value, parseInt(g_beforeStartTime.value))
+                getServerTimeEx(g_startTime.value)
             })
             stop.addEventListener('click', () => {
                 countdown.disabled = false
@@ -160,7 +160,7 @@
     const getServerTimeEx = (startTime) => {
         var startTimeStr = ec.util.parseDate(startTime).format("yyyy-MM-dd HH:mm:ss");
         var startTimeStrTemp = ec.util.parseDate(startTime).format("MM\u6708dd\u65e5 HH:mm");
-        var nowDate = new Date((new Date).getTime() + OFFSETTIME + NETWORKTIME - 10); // 时间矫正/包括服务器和本地时间差、网络时延
+        var nowDate = new Date((new Date).getTime() + OFFSETTIME + NETWORKTIME - 3); // 时间矫正/包括服务器和本地时间差、网络时延
         ec.ui.countdown2($("#pro-operation-countdown"), {
             html: "\x3cp\x3e" + startTimeStrTemp + "\u5f00\u552e:\t\x3c/p\x3e\x3cul\x3e\x3cli\x3e\x3cspan\x3e{#day}\x3c/span\x3e\x3c/li\x3e\x3cli\x3e\x3cem\x3e\u5929\x3c/em\x3e\x3c/li\x3e\x3cli\x3e\x3cspan\x3e{#hours}\x3c/span\x3e\x3c/li\x3e\x3cli\x3e\x3cem\x3e:\x3c/em\x3e\x3c/li\x3e\x3cli\x3e\x3cspan\x3e{#minutes}\x3c/span\x3e\x3c/li\x3e\x3cli\x3e\x3cem\x3e:\x3c/em\x3e\x3c/li\x3e\x3cli\x3e\x3cspan\x3e{#seconds}\x3c/span\x3e\x3c/li\x3e",
             now: nowDate,
