@@ -23,7 +23,7 @@
     let STARTTIME = 0 // 活动开始时间
     let OFFSETTIME = 0 // 与本地时间相差
     let NETWORKTIME = 0 // 网络延迟
-    const INTERVAL = 3 // 检查按钮的定时器时长ms
+    const INTERVAL = 10 // 检查按钮的定时器时长ms
 
     window.onload = () => {
         // 抢购前，务必登录vmall.com，并且设置好默认邮寄地址
@@ -61,7 +61,7 @@
                         <form id='formList'>
                             <div>活动开始时间</div>
                             <input type="text" id="g_startTime"  value="" placeholder="2020-03-07 12:49:00" />
-                            <div>提前下单时间，和RTT成正比<span>(ms)</span></div>
+                            <div>提前下单时间，和RTT波动成正比<span>(ms)</span></div>
                             <input type="number" id="g_beforeStartTime" value="" placeholder="200" /></br>
                             <div style="display:none">提前刷新页面<span>(s)</span></div>
                             <input style="display:none" type="checkBox" id='isRefresh'> </input>
@@ -95,8 +95,8 @@
             refreshTime.value = 30
 
             // 延时
-            document.querySelector('#offsetTime').innerText = OFFSETTIME || rush.business.offsetTime + 'ms'
-            document.querySelector('#timer').innerText = NETWORKTIME || rush.business.timer + 'ms'
+            document.querySelector('#offsetTime').innerText = OFFSETTIME
+            document.querySelector('#timer').innerText = NETWORKTIME
 
             // 倒计时
             const countdownId = setInterval(() => {
@@ -118,8 +118,8 @@
                 sessionStorage.setItem('g_beforeStartTime', g_beforeStartTime.value)
                 sessionStorage.setItem('isRun', true)
 
-                //getServerTime(g_startTime.value, parseInt(g_beforeStartTime.value))
-                getServerTimeEx(g_startTime.value)
+                getServerTime(g_startTime.value, parseInt(g_beforeStartTime.value))
+                //getServerTimeEx(g_startTime.value)
             })
             stop.addEventListener('click', () => {
                 countdown.disabled = false
@@ -145,13 +145,13 @@
             let currentTime = new Date().getTime() + OFFSETTIME;
             //console.log(startTime-currentTime, g_beforeStartTime)
             // 抢购方式一，提前直接排队
-            //rushToBuy(startTime, currentTime, g_beforeStartTime)
+            rushToBuy(startTime, currentTime, g_beforeStartTime)
 
             // 抢购方式二，提前调用onclick
             //rushToBuyEx(startTime, currentTime, g_beforeStartTime)
 
             // 抢购方式三，准时调用click
-            rushToBuyDingjin()
+            //rushToBuyDingjin()
 
         }, INTERVAL)
     }
@@ -183,10 +183,10 @@
                     NETWORKTIME = (new Date().getTime() - getTime)/2 // 单边RTT
                     if (responseDetails.status === 200) {
                         const res = JSON.parse(responseDetails.responseText)
-                        OFFSETTIME = res.currentTime - new Date().getTime()
+                        OFFSETTIME = res.currentTime - new Date().getTime() - NETWORKTIME// 时间差要把网络时间算进去
                         if (res.skuRushBuyInfoList[0].isRushBuySku) {
                             STARTTIME = res.skuRushBuyInfoList[0].startTime
-                            //STARTTIME = getTime+15000;// for test
+                            //STARTTIME = getTime+30000;// for test
                         } else {
                             STARTTIME = getTime
                         }
@@ -197,14 +197,16 @@
             }
             GM_xmlhttpRequest(details)
         }
-    // 提前申购1
+    // 提前申购1,需要人工计算RTT的波动范围。如果波动大，需要在RTT的波动范围内，多开几个页面
+    // 当前需要多人多个账户一起操作。貌似一个账户只能在一个地方登陆，同一个机器连续发送请求，不能低于250ms
     const rushToBuy = (startTime, currentTime, beforeStartTime) => {
-        if (startTime - currentTime <= beforeStartTime) {
+        if (currentTime + NETWORKTIME + beforeStartTime >= startTime ) {
             if (window.location.href.indexOf('/rush') !== -1) {
                 ec.submit(0)
             }
             if (window.location.href.indexOf('/product') !== -1) {
-                rush.business.doGoRush(1);
+                //rush.business.doGoRush(1);
+                rush.business.clickBtn(1);
             }
             sessionStorage.setItem('isRun', false)
             clearInterval(cycle)
